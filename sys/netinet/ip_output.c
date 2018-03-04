@@ -113,6 +113,16 @@ ip_output_pfil(struct mbuf **mp, struct ifnet **ifp, struct inpcb *inp,
 	m = *mp;
 	ip = mtod(m, struct ip *);
 
+	/* Outgoing interface may be different already */
+	if (IP_HAS_NEXTHOP(m) && !ip_get_fwdtag(m, dst, &ifidx)) {
+		if (ifidx != 0) {
+			struct ifnet *nifp = ifnet_byindex(ifidx);
+			if (nifp != NULL) {
+				*ifp = nifp;
+			}
+		}
+	}
+
 	/* Run through list of hooks for output packets. */
 	odst.s_addr = ip->ip_dst.s_addr;
 	*error = pfil_run_hooks(&V_inet_pfil_hook, mp, *ifp, PFIL_OUT, inp);
